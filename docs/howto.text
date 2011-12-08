@@ -1,0 +1,107 @@
+Creando una aplicación en AppEngine con Python 2.7
+==================================================
+
+Hace <small>relativamente</small> poco tiempo Google AppEngine permite desarrollar aplicaciones en Python2.7 (antiguamente era Python 2.5) que permite muchas nuevas cosas, como trabajo concurrente y el uso de la base de datos de alta replicación. Aquí viene una guía de como hago el startup de una aplicación nueva que use templates con este nuevo sistema. Como elemento nuevo, no estaré usando Django como motor de templates (las aplicaciones en 2.7 se desacoplaron de esas librerías) y en cambio usaré Jinja2.
+
+Antes de comenzar: Asegurate de tener instalado python 2.7, sino todo esto no tiene sentido.
+
+Para rear una aplicación base de AppEngine, primero hay que modificar algunos datos del app.yaml
+Hay que modificar la linea del runtime a python27, colocar si quieres que sea threadsafe o no (el valor es opcional, pero debes explicitar la opción).
+
+	application: myapp
+	version: 1
+	runtime: python27
+	api_version: 1
+	threadsafe: true
+
+Hay que agregar también las librerías externas que se usarán, éstas estarán funcionando en la nube, pero tienes que instalarlas localmente si es que quieres probar tu aplicación sin tener que hacer update a cada rato.
+
+	libraries:
+	- name: jinja2
+	  version: "2.6"
+	- name: markupsafe
+	  version: latest
+	- name: setuptools
+	  version: latest
+
+Como se fijan, el sitio, que aun no sabemos que hará, pero por algún motivo usará [Jinja2](http://jinja.pocoo.org/docs/). Esto se debe a que el sitio seguramente necesitará templates, y Jinja2 es un heredero del templating de Django, sin tener tantas piezas como éste último. Es como cuando se elije a Sinatra por sobre Rails en Ruby.
+
+Instalando librerías externas
+-----------------------------
+
+Primero hay que comenzar con SetupTools, hay que ir a la [página de descargas de setuptools](http://pypi.python.org/pypi/setuptools#files) y por ejemplo, descargar el egg de python 2.7 (Si tienes un sistema que usa RPM, baja el RPM). Luego hay que ejecutar el egg.
+
+	sudo sh setuptools-0.6c11-py2.7.egg
+
+Ya con eso está instalado setuptools e easy_install, pero vamos a instalar pip también, que es una mejora por sobre easy_install, vamos a instalarlo global en el sistema, por lo que nos vamos a saltar el paso de usar virtualenv. (Aunque también es recomendable usar virtualenv)
+
+	wget https://raw.github.com/pypa/pip/master/contrib/get-pip.py
+	sudo python get-pip.py
+
+Ahora, a instalar Jinja2 para poder ver el sitio como en producción. Y para hacer más óptimo el trabajo de Jinja, también instalaremos MarkupSafe que hace mejor el trabajo de marcaje seguro de HTML en strings en Python que Jinja. Y para hacer que MarkupSafe sea aún más rápido, debemos tener las librerías de Python para que se compilen en las extensiones de C.
+
+	sudo apt-get install python2.7-dev
+	sudo pip install MarkupSafe
+	sudo pip install Jinja2
+
+Con eso ya deberíamos estar listos.
+
+Estructura de la aplicación
+---------------------------
+
+La manera en que se arme una aplicación en AppEngine es libre, de hecho, ninguna aplicación que he hecho tiene la misma estructura de directorios que la anterior, pues trato de ir optimizando el desarrollo cada vez. Comencé teniendo una carpeta con un lote de scripts, luego carpetas por modulos y ahora tengo pensada una estructura como la siguiente:
+
+-MyApp
+	-config
+		-routing.py
+	-lib
+		-handlers.py
+	-templates
+	-data
+		-model.py
+	-modules
+	-static
+		-images
+		-scripts
+		-stylesheets
+		-uploads
+	-app.yaml
+
+Hay que considerar eso si que aún no tengo decidido que haré en el detalle en el enrutamiento y creación de los handlers. Sin embargo ya puedo tener una primera version de un hello world.
+
+El primer Hello World
+----------------------
+Para llegar rápido a algun resultado agregaremos esta línea a app.yaml
+
+	handlers:
+	- url: /
+	  script: config.routing.default
+
+Ahora, vamos a crear el Enrutador por defecto.
+
+	import webapp2
+	import logging
+	logging.getLogger().setLevel(logging.DEBUG)
+
+	class DefaultRouter(webapp2.RequestHandler):
+	    def get(self):
+	    	logging.info( "Default router")
+	        self.response.headers['Content-Type'] = 'text/plain'
+	        from jinja2 import Template
+	        template = Template('Hello {{name}}!')
+	        out = template.render(name='World')
+	        self.response.out.write(out)
+	default = webapp2.WSGIApplication([('/*', DefaultRouter)])
+
+Este código está en el archivo routing.py en config y la instancia de la aplicación se llama default, por eso el script es <code>config.routing.default</code>
+
+Con eso bastaría con echar a andar el servidor y revisar la página. El servidor de desarrollo de Google App Engine se corre con el siguiente comando:
+
+	dev_appserver.py [directorio base de la aplicación]
+
+Recuerden que el script tiene como parámetro el directorio en donde se encuentra app.yaml
+
+En la próxima parte, usaremos el sistema de Templates de manera más elegante.
+
+
+

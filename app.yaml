@@ -1,15 +1,26 @@
 application: sportsiege
 version: 1
-runtime: python
+runtime: python27
 api_version: 1
 threadsafe: true
 
+libraries:
+- name: webob
+  version: latest
+- name: jinja2
+  version: "2.6"
+- name: markupsafe
+  version: latest
+- name: setuptools
+  version: latest
+
+
 handlers:
 - url: /
-  script: routing/default.py
+  script: config.routing.default
 
 - url: /index\.html
-  script: routing/default.py
+  script: config.routing.default
 
 - url: /css
   static_dir: static/stylesheets
@@ -24,9 +35,5 @@ handlers:
   static_files: static/uploads/\1
   upload: static/uploads/(.*\.(gif|png|jpg))
 
-- url: /admin/.*
-  script: admin.py
-  login: admin
-
 - url: /.*
-  script: routing/not_found.py
+  script: config.routing.not_found
