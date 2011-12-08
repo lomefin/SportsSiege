@@ -1,0 +1,32 @@
+application: sportsiege
+version: 1
+runtime: python
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /
+  script: routing/default.py
+
+- url: /index\.html
+  script: routing/default.py
+
+- url: /css
+  static_dir: static/stylesheets
+
+- url: /js
+  static_dir: static/scripts
+
+- url: /img
+  static_dir: static/images
+
+- url: /uploads/(.*\.(gif|png|jpg))
+  static_files: static/uploads/\1
+  upload: static/uploads/(.*\.(gif|png|jpg))
+
+- url: /admin/.*
+  script: admin.py
+  login: admin
+
+- url: /.*
+  script: routing/not_found.py

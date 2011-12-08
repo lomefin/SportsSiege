@@ -1,0 +1,8 @@
+#Compiled#
+*.pyc
+
+
+#Databases and logs
+*.log
+*.db
+*.sqlite
